@@ -24,21 +24,21 @@
 После 10 эпох:
 
 
-![[generated_01.png]]
+![[examples/generated_01.png]]
 
-![[generated_02.png]]
+![[examples/generated_02.png]]
 
-![[generated_03.png]]
+![[examples/generated_03.png]]
 
-![[generated_04.png]]
+![[examples/generated_04.png]]
 
 После 300 эпох:
-![[generated_12.png]]
+![[examples/generated_12.png]]
 
-![[generated_21.png]]
+![[examples/generated_21.png]]
 
-![[generated_27.png]]
+![[examples/generated_27.png]]
 
-![[generated_32.png]]
+![[examples/generated_32.png]]
 
-![[generated_37.png]]
+![[examples/generated_37.png]]
