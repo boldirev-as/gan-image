@@ -4,7 +4,6 @@ from torch import nn
 from torch.nn import functional as F
 from utils.class_registry import ClassRegistry
 
-
 gen_losses_registry = ClassRegistry()
 disc_losses_registry = ClassRegistry()
 
@@ -18,18 +17,18 @@ class GANLossBuilder:
         for loss_name, loss_coef in config.gen_losses.items():
             self.coefs[loss_name] = loss_coef
             loss_args = {}
-            if losses_args in config and loss_name in config.losses_args:
+            if loss_args in config and loss_name in config.losses_args:
                 loss_args = config.losses_args
             self.gen_losses[loss_name] = gen_losses_registry[loss_name](**loss_args)
 
         for loss_name, loss_coef in config.disc_losses.items():
             self.coefs[loss_name] = loss_coef
             loss_args = {}
-            if losses_args in config and loss_name in config.losses_args:
+            if loss_args in config and loss_name in config.losses_args:
                 loss_args = config.losses_args
             self.disc_losses[loss_name] = disc_losses_registry[loss_name](**loss_args)
 
-    def calculate_loss(batch_data, loss_type):
+    def calculate_loss(self, batch_data, loss_type):
         # batch_data is a dict with all necessary data for loss calculation
         loss_dict = {}
         total_loss = 0.0
@@ -54,12 +53,8 @@ class SoftPlusGenLoss(nn.Module):
 
 
 @disc_losses_registry.add_to_registry(name="softplus_disc")
-class SoftPlusGenLoss(nn.Module):
+class SoftPlusDiscLoss(nn.Module):
     def forward(self, batch):
-        # TO DO
-        # calculate softplus loss for discriminator
-        raise NotImplementedError()
-
-# Add the other losses you need
-
-
+        real_loss = F.softplus(-batch["real_preds"]).mean()
+        fake_loss = F.softplus(batch["fake_preds"]).mean()
+        return real_loss + fake_loss

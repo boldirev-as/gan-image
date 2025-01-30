@@ -2,9 +2,11 @@ import torch
 
 from abc import abstractmethod
 from datasets.dataloaders import InfiniteLoader
-from training.loggers import TrainingLogger
-from datasets.datasets import datasets_registry
+from training.loggers import TrainingLogger, WandbLogger
+from datasets.datasets import datasets_registry, BaseDataset
 from metrics.metrics import metrics_registry
+
+from torchvision import transforms
 
 
 class BaseTrainer:
@@ -14,7 +16,8 @@ class BaseTrainer:
         self.device = config.exp.device
         self.start_step = config.train.start_step
         self.step = 0
-    
+
+        self.global_step = 0
 
     def setup(self):
         self.setup_experiment_dir()
@@ -29,7 +32,6 @@ class BaseTrainer:
         self.setup_datasets()
         self.setup_dataloaders()
 
-
     def setup_inference(self):
         self.setup_experiment_dir()
 
@@ -40,7 +42,6 @@ class BaseTrainer:
 
         self.setup_datasets()
         self.setup_dataloaders()
-
 
     @abstractmethod
     def setup_models(self):
@@ -63,32 +64,33 @@ class BaseTrainer:
         pass
 
     def setup_experiment_dir(self):
-        # TO DO
-        # self.experiment_dir = ...
-        raise NotImplementedError()
+        self.experiment_dir = 'experiments/'
 
     def setup_metrics(self):
-        # TO DO
-        # self.metrics = []
-        # for metric_name in self.config.train.val_metrics:
-        #     ...
-        raise NotImplementedError()
+        self.metrics = []
+        for metric_name in metrics_registry.classes.keys():
+            self.metrics.append(metrics_registry[metric_name]())
 
     def setup_logger(self):
-        # TO DO
-        # self.logger = ...
-        raise NotImplementedError()
+        self.logger = TrainingLogger(config=self.config)
 
     def setup_datasets(self):
-        # TO DO
-        # self.train_dataset = ...
-        raise NotImplementedError()
+        transform = transforms.Compose([
+            transforms.Resize((64, 64)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+        self.train_dataset = datasets_registry['base_dataset'](
+            root=self.config.data.input_train_dir, transforms=transform)
+        self.val_dataset = datasets_registry['base_dataset'](
+            root=self.config.data.input_val_dir, transforms=transform)
 
     def setup_dataloaders(self):
-        # TO DO
-        # self.train_dataloader = ...
-        raise NotImplementedError()
-
+        self.train_dataloader = InfiniteLoader(
+            self.train_dataset)
+        self.val_dataloader = InfiniteLoader(
+            self.val_dataset)
 
     def training_loop(self):
         self.to_train()
@@ -109,6 +111,7 @@ class BaseTrainer:
             if self.global_step % self.config.train.checkpoint_step == 0:
                 self.save_checkpoint()
 
+            self.global_step += 1
 
     @abstractmethod
     def train_step(self):
@@ -118,7 +121,6 @@ class BaseTrainer:
     def save_checkpoint(self):
         pass
 
-
     @torch.no_grad()
     def validate(self):
         self.to_eval()
@@ -126,17 +128,15 @@ class BaseTrainer:
 
         metrics_dict = {}
         for metric in self.metrics:
-            metrics_dict[metric.get_name()] = metric(
-                orig_path=self.config.data.input_val_dir, 
+            metrics_dict['fid'] = metric(
+                orig_path=self.config.data.input_val_dir,
                 synt_path=images_pth
             )
         return metrics_dict, images_sample
 
-
     @abstractmethod
     def synthesize_images(self):
         pass
-
 
     @torch.no_grad()
     def inference(self):
@@ -144,7 +144,5 @@ class BaseTrainer:
         # Validate your model, save images
         # Calculate metrics
         # Log if needed
+
         raise NotImplementedError()
-
-
-
