@@ -13,6 +13,14 @@ from training.losses.gan_losses import GANLossBuilder, gen_losses_registry, disc
 gan_trainers_registry = ClassRegistry()
 
 
+def get_grad_norm(model):
+    total_norm = 0
+    for param in model.parameters():
+        if param.grad is not None:
+            total_norm += param.grad.norm(2).item() ** 2
+    return total_norm ** 0.5
+
+
 @gan_trainers_registry.add_to_registry(name="base_gan_trainer")
 class BaseGANTrainer(BaseTrainer):
     def setup_models(self):
@@ -24,8 +32,8 @@ class BaseGANTrainer(BaseTrainer):
     def setup_optimizers(self):
         self.generator_optimizer = optimizers_registry['adam'](self.generator.parameters(),
                                                                **self.config.gen_optimizer_args)
-        self.dicriminator_optimizer = optimizers_registry['adam'](self.dicriminator.parameters(),
-                                                                  **self.config.disc_optimizer_args)
+        self.dicriminator_optimizer = optimizers_registry['adam'](self.dicriminator.parameters(), lr=5e-6,
+                                                                  betas=(0.5, 0.999))
 
     def setup_losses(self):
         self.loss_builder = GANLossBuilder(self.config)
@@ -44,32 +52,39 @@ class BaseGANTrainer(BaseTrainer):
 
         real_images = batch['images'].to(self.config.exp.device)
 
-        z = torch.randn((batch_size, self.config.generator_args.z_dim), device=self.config.exp.device)
+        # Добавляем шум, чтобы дискриминатор не переобучался
+        real_images += 0.1 * torch.randn_like(real_images)
 
+        z = torch.randn((batch_size, self.config.generator_args.z_dim), device=self.config.exp.device)
         generated_images = self.generator(z)
 
+        # Обучаем дискриминатор
         batch['real_preds'] = self.dicriminator(real_images)
-        batch['fake_preds'] = self.dicriminator(generated_images.detach())
+        batch['fake_preds'] = self.dicriminator(generated_images.detach())  # detach, чтобы генератор не обновлялся
 
         d_loss, loss_dict_disc = self.loss_builder.calculate_loss(batch, "disc")
 
         self.dicriminator_optimizer.zero_grad()
         d_loss.backward()
+
+        d_grad_norm = get_grad_norm(self.dicriminator)
+
+        torch.nn.utils.clip_grad_norm_(self.dicriminator.parameters(), max_norm=1.0)  # Градиентный клиппинг
         self.dicriminator_optimizer.step()
 
-        batch['fake_preds'] = self.dicriminator(generated_images)
+        batch['fake_preds'] = self.dicriminator(generated_images)  # Без detach()
         g_loss, loss_dict_gen = self.loss_builder.calculate_loss(batch, "gen")
 
         self.generator_optimizer.zero_grad()
         g_loss.backward()
+
+        g_grad_norm = get_grad_norm(self.generator)
+
         self.generator_optimizer.step()
 
-        print(f"d_loss: {d_loss.item()}, g_loss: {g_loss.item()}")
+        print(f"Generator Grad Norm: {g_grad_norm:.6f}, Discriminator Grad Norm: {d_grad_norm:.6f}")
 
-        return {
-            "d_loss": d_loss.item(),
-            "g_loss": g_loss.item()
-        }
+        return {'d_loss': d_loss.item(), 'g_loss': g_loss.item()}
 
     def save_checkpoint(self):
         state = {
@@ -112,4 +127,4 @@ class BaseGANTrainer(BaseTrainer):
             img_path = f"{self.experiment_dir}/images/synthesized_image_{i}.png"
             img.save(img_path)
 
-        return batch_of_images, f"{self.experiment_dir}/images"
+        return total_images[:10], f"{self.experiment_dir}/images"

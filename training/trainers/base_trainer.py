@@ -1,6 +1,9 @@
 import torch
 
 from abc import abstractmethod
+
+from tqdm import tqdm
+
 from datasets.dataloaders import InfiniteLoader
 from training.loggers import TrainingLogger, WandbLogger
 from datasets.datasets import datasets_registry, BaseDataset
@@ -100,17 +103,20 @@ class BaseTrainer:
         )
 
     def training_loop(self):
-        self.to_train()
 
-        for self.step in range(self.start_step, self.config.train.steps + 1):
+        for self.step in tqdm(range(self.start_step, self.config.train.steps + 1)):
+            self.to_train()
+
             losses_dict = self.train_step()
             self.logger.update_losses(losses_dict)
 
-            if self.step % self.config.train.val_step == 0:
+            if self.global_step % self.config.train.val_step == 0:
+                self.to_eval()
+
                 val_metrics_dict, images = self.validate()
 
-                self.logger.log_val_metrics(val_metrics_dict, step=self.step)
-                self.logger.log_batch_of_images(images, step=self.step, images_type="validation")
+                self.logger.log_val_metrics(val_metrics_dict, step=self.global_step)
+                self.logger.log_batch_of_images(images, step=self.global_step, images_type="validation")
 
             if self.global_step % self.config.train.log_step == 0:
                 self.logger.log_train_losses(self.global_step)

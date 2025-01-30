@@ -51,14 +51,6 @@ class WandbLogger:
         """
         logs = {}
         for name, img in images.items():
-            if isinstance(img, torch.Tensor):  # Преобразуем тензор в изображение
-                img = img.cpu().detach().numpy()
-                img = (img * 0.5 + 0.5) * 255
-                img = img.astype(np.uint8)
-                img = np.transpose(img, (1, 2, 0))
-                img = Image.fromarray(img)
-            elif isinstance(img, np.ndarray):  # Если это NumPy-массив
-                img = Image.fromarray(((img + 0.5) * 255).astype(np.uint8))
             logs[name] = wandb.Image(img)
 
         wandb.log(logs, step=step)
@@ -91,14 +83,14 @@ class TrainingLogger:
         """
         self.logger.log_values(val_metrics, step)
 
-    def log_batch_of_images(self, batch: torch.Tensor, step: int, images_type: str = ""):
+    def log_batch_of_images(self, batch: list, step: int, images_type: str = ""):
         """
         Логирует батч изображений.
         :param batch: Тензор изображений [B, C, H, W]
         :param step: текущий шаг
         :param images_type: текстовое описание (например, "real", "generated")
         """
-        images = {f"{images_type}_{i}": batch[i] for i in range(min(8, batch.shape[0]))}  # Логируем 8 примеров
+        images = {f"{images_type}_{i}": batch[i] for i in range(8)}  # Логируем 8 примеров
         self.logger.log_images(images, step)
 
     def update_losses(self, losses_dict):

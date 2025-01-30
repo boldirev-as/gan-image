@@ -49,12 +49,17 @@ class GANLossBuilder:
 @gen_losses_registry.add_to_registry(name="softplus_gen")
 class SoftPlusGenLoss(nn.Module):
     def forward(self, batch):
-        return F.softplus(-batch["fake_preds"]).mean()
+        return ((batch["fake_preds"] - 1) ** 2).mean()
+        # return F.binary_cross_entropy_with_logits(batch["fake_preds"], torch.ones_like(batch["fake_preds"]))
+        # return F.softplus(-batch["fake_preds"]).mean()
 
 
 @disc_losses_registry.add_to_registry(name="softplus_disc")
 class SoftPlusDiscLoss(nn.Module):
     def forward(self, batch):
-        real_loss = F.softplus(-batch["real_preds"]).mean()
-        fake_loss = F.softplus(batch["fake_preds"]).mean()
+        # real_loss = F.softplus(-batch["real_preds"]).mean()
+        # fake_loss = F.softplus(batch["fake_preds"]).mean()
+        # return real_loss + fake_loss
+        real_loss = ((batch["real_preds"] - 1) ** 2).mean()  # Дискриминатор хочет реальные -> 1
+        fake_loss = (batch["fake_preds"] ** 2).mean()  # Дискриминатор хочет фейковые -> 0
         return real_loss + fake_loss
