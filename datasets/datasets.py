@@ -3,7 +3,6 @@ from torch.utils.data import Dataset
 from utils.data_utils import make_dataset
 from utils.class_registry import ClassRegistry
 
-
 datasets_registry = ClassRegistry()
 
 
@@ -24,4 +23,3 @@ class BaseDataset(Dataset):
 
     def __len__(self):
         return len(self.paths)
-

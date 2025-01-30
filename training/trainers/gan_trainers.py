@@ -60,11 +60,11 @@ class BaseGANTrainer(BaseTrainer):
         batch['fake_preds'] = self.dicriminator(generated_images)
         g_loss, loss_dict_gen = self.loss_builder.calculate_loss(batch, "gen")
 
-        print(d_loss, g_loss)
-
         self.generator_optimizer.zero_grad()
         g_loss.backward()
         self.generator_optimizer.step()
+
+        print(f"d_loss: {d_loss.item()}, g_loss: {g_loss.item()}")
 
         return {
             "d_loss": d_loss.item(),

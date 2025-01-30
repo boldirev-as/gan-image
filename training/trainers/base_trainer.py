@@ -88,9 +88,16 @@ class BaseTrainer:
 
     def setup_dataloaders(self):
         self.train_dataloader = InfiniteLoader(
-            self.train_dataset)
+            self.train_dataset,
+            num_workers=self.config.data.workers,
+            batch_size=self.config.data.train_batch_size,
+            shuffle=True
+        )
         self.val_dataloader = InfiniteLoader(
-            self.val_dataset)
+            self.val_dataset,
+            num_workers=self.config.data.workers,
+            batch_size=self.config.data.val_batch_size
+        )
 
     def training_loop(self):
         self.to_train()
