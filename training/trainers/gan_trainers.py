@@ -82,9 +82,8 @@ class BaseGANTrainer(BaseTrainer):
 
         self.generator_optimizer.step()
 
-        print(f"Generator Grad Norm: {g_grad_norm:.6f}, Discriminator Grad Norm: {d_grad_norm:.6f}")
-
-        return {'d_loss': d_loss.item(), 'g_loss': g_loss.item()}
+        return {'d_loss': d_loss.item(), 'g_loss': g_loss.item(), 'd_grad_norm': d_grad_norm,
+                'g_grad_norm': g_grad_norm}
 
     def save_checkpoint(self):
         state = {
