@@ -32,7 +32,8 @@ class BaseGANTrainer(BaseTrainer):
     def setup_optimizers(self):
         self.generator_optimizer = optimizers_registry['adam'](self.generator.parameters(),
                                                                **self.config.gen_optimizer_args)
-        self.dicriminator_optimizer = optimizers_registry['adam'](self.dicriminator.parameters(), lr=5e-6,
+        self.dicriminator_optimizer = optimizers_registry['adam'](self.dicriminator.parameters(),
+                                                                  lr=self.config.disc_optimizer_args.lr,
                                                                   betas=(0.5, 0.999))
 
     def setup_losses(self):
@@ -51,9 +52,7 @@ class BaseGANTrainer(BaseTrainer):
         batch_size = batch['images'].size(0)
 
         real_images = batch['images'].to(self.config.exp.device)
-
-        # Добавляем шум, чтобы дискриминатор не переобучался
-        real_images += 0.1 * torch.randn_like(real_images)
+        real_images += 0.3 * torch.randn_like(real_images)
 
         z = torch.randn((batch_size, self.config.generator_args.z_dim), device=self.config.exp.device)
         generated_images = self.generator(z)

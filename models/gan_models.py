@@ -31,6 +31,7 @@ class VerySimpleGenarator(nn.Module):
             x = block(x)
             x = F.interpolate(x, scale_factor=2, mode="nearest")
         x = self.to_rgb_block(x)
+        # x = nn.Tanh()(x)
         return x
 
 
@@ -62,9 +63,10 @@ class VerySimpleDiscriminator(nn.Module):
 
 
 class VerySimpleBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, use_batchnorm=True):
+    def __init__(self, in_channels, out_channels, use_batchnorm=True, use_relu=True):
         super().__init__()
         self.use_batchnorm = use_batchnorm
+        self.use_relu = use_relu
 
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels) if use_batchnorm else nn.Identity()
@@ -81,5 +83,7 @@ class VerySimpleBlock(nn.Module):
 
         x = self.conv2(x)
         x = self.bn2(x)  # Применяем BatchNorm
-        x = self.activation(x)
+
+        if self.use_relu:
+            x = self.activation(x)
         return x

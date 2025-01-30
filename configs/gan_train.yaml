@@ -1,6 +1,6 @@
 exp:
   exp_dir: experiments
-  device: mps
+  device: cuda
   seed: 777
   use_wandb: True
   model_type: gan
@@ -10,9 +10,9 @@ exp:
 data:
   input_train_dir: food_data/train
   input_val_dir: food_data/test
-  train_batch_size: 8
-  val_batch_size: 8
-  workers: 8
+  train_batch_size: 16
+  val_batch_size: 16
+  workers: 16
 
 train:
   trainer: base_gan_trainer
@@ -24,25 +24,25 @@ train:
   val_metrics: [ "fid" ]
   start_step: 0
   steps: 300000
-  log_step: 500
+  log_step: 2
   checkpoint_step: 15000
-  val_step: 15000
+  val_step: 100
 
 
 generator_args:
-  z_dim: 32
-  hidden_dim: 512
+  z_dim: 64
+  hidden_dim: 1024
   blocks_num: 4
 
 discriminator_args:
-  hidden_dim: 512
-  blocks_num: 4
+  hidden_dim: 256
+  blocks_num: 3
 
 gen_optimizer_args:
-  lr: 0.0003
+  lr: 0.001
 
 disc_optimizer_args:
-  lr: 0.0001
+  lr: 4e-6
 
 gen_losses:
   softplus_gen: 1.0
